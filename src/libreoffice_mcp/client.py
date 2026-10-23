@@ -73,6 +73,11 @@ class OfficeClient:
 
         return asyncio.create_task(_boot())
 
+    async def _ensure_running_for_tests(self) -> None:
+        """Start the worker and wait until it is ready (tests only)."""
+        async with self._lock:
+            await self._ensure_running()
+
     async def call(
         self,
         kind: str,

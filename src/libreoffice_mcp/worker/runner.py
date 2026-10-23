@@ -88,7 +88,9 @@ def run_ops(session: sess.Session, ops: list[dict[str, Any]]) -> list[Any]:
             err = OpError(f"{name} failed: {sess.describe(exc)}", protocol.E_OFFICE)
             err.op_index, err.op_name = index, name  # type: ignore[attr-defined]
             raise err from exc
-        if definition.mutates:
+        if isinstance(result, dict) and result.pop("_noop", False):
+            pass  # the operation changed nothing: don't mark the document dirty
+        elif definition.mutates:
             session.mutated = True
         results.append(result)
     return results
