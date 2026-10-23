@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import fnmatch
 import functools
+import inspect
 import logging
 import time
 from collections.abc import Callable
@@ -107,7 +108,13 @@ def register_all(mcp: MCPServer, settings: Settings) -> list[ToolDef]:
             idempotent_hint=t.mode == "read",
             open_world_hint=False,
         )
-        mcp.add_tool(_logged(t.fn), name=t.name, title=t.title, annotations=annotations)
+        mcp.add_tool(
+            _logged(t.fn),
+            name=t.name,
+            title=t.title,
+            description=inspect.cleandoc(t.fn.__doc__ or ""),
+            annotations=annotations,
+        )
     log.info("exposing %d tools (apps: %s%s)", len(chosen), ", ".join(settings.apps),
              ", read-only" if settings.read_only else "")  # fmt: skip
     return chosen

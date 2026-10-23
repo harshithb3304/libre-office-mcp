@@ -66,15 +66,14 @@ class OfficeClient:
 
         async def _boot() -> None:
             try:
-                async with self._lock:
-                    await self._ensure_running()
+                await self.wait_until_ready()
             except Exception as exc:  # reported again, with context, on the first real call
                 log.error("background start failed: %s", exc)
 
         return asyncio.create_task(_boot())
 
-    async def _ensure_running_for_tests(self) -> None:
-        """Start the worker and wait until it is ready (tests only)."""
+    async def wait_until_ready(self) -> None:
+        """Start the worker if needed and wait until LibreOffice is ready to take requests."""
         async with self._lock:
             await self._ensure_running()
 

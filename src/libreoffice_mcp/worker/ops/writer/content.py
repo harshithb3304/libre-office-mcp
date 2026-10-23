@@ -150,6 +150,7 @@ def add_content(
                     spec.get("width_mm"),
                     spec.get("height_mm"),
                     spec.get("alt_text"),
+                    spec.get("alignment"),
                 )
             elif kind == "page_break":
                 slot.paragraph("").BreakType = enum("com.sun.star.style.BreakType", "PAGE_BEFORE")

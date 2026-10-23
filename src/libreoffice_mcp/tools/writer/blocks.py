@@ -61,6 +61,7 @@ class ImageBlock(BaseModel):
     width_mm: float | None = None
     height_mm: float | None = None
     alt_text: str | None = None
+    alignment: Alignment | None = None
 
 
 class PageBreakBlock(BaseModel):

@@ -37,7 +37,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 @pytest.fixture(scope="session")
 async def office() -> AsyncIterator[OfficeClient]:
     client = OfficeClient(Settings(op_timeout=120, startup_timeout=120))
-    await client._ensure_running_for_tests()
+    await client.wait_until_ready()
     try:
         yield client
     finally:
