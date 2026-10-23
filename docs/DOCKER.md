@@ -1,12 +1,11 @@
-# Running with Docker (recommended)
+# Docker in detail
 
-Docker is the easiest way to run this on any OS: LibreOffice, its Python bridge and the fonts
-are all inside the image, so there is nothing to install or configure on your machine except
-Docker itself.
+Docker is the only supported way to run this: LibreOffice, its Python bridge and the fonts are all
+inside the image, so the only thing to install on your computer is Docker. The README has the
+quick start; this page explains the details.
 
-**The one thing to understand:** the AI can only see the folder you mount into the container at
-`/data`. Everything else on your computer is invisible to it. You refer to files by short paths
-(`report.docx`, `clients/acme.docx`); `/data` is the default location for relative paths.
+* The **container is the MCP server**. Your AI app just needs to be told how to reach it.
+* The AI sees **one folder** of yours — the workspace — as `/data`.
 
 ## Build the image
 
@@ -16,63 +15,70 @@ cd libre-office-mcp
 docker build -t libreoffice-mcp .
 ```
 
-The first build downloads LibreOffice (several hundred MB); later builds are cached.
+The first build downloads LibreOffice (several hundred MB); later builds are cached. The image is
+about 1 GB, a one-time cost: it does not grow when you create documents.
 
-## Option A — stdio (Claude Desktop, Claude Code, most desktop AI apps)
+## The workspace folder
 
-The AI app starts the container itself and talks to it over stdin/stdout.
+The workspace is a normal folder on your computer that you mount into the container as `/data`.
+It is the *only* thing the AI can see.
 
-**Claude Desktop** (`claude_desktop_config.json`):
+| | |
+|---|---|
+| Where is it? | Whatever folder you mount. With compose: `./workspace` next to `docker-compose.yml`, or `WORKSPACE=/some/folder`. With `docker run`: the left side of `-v <folder>:/data`. |
+| Is it cleared? | No. It is on your disk, outside the image and container. Stopping or removing the container leaves it untouched. |
+| Relative paths | `report.docx` → `/data/report.docx`. This is the workspace, **not** your terminal's current directory (unless you mount it: `-v "$(pwd):/data"`). |
+| Absolute paths | Only paths under `/data`. Anything else is refused. |
+| Host paths | `C:\Users\me\file.docx` doesn't exist inside the container — copy the file into the workspace and use its name. |
+| Existing files | Copy them into the workspace; the AI then edits them there. |
+| Open files | Close a document in Word/LibreOffice before the AI edits it. Word on Windows locks open files exclusively, so the write fails ("file in use"); other apps keep showing stale content until reloaded. |
+| Permissions | The server runs as user `ubuntu` (uid 1000). On a Linux host make the folder writable for it (`chmod a+rwx folder`) or run with `--user "$(id -u):$(id -g)"`. Docker Desktop (Windows/macOS) needs nothing special. |
+
+## Option A — the AI app starts the container (stdio)
+
+Nothing stays running; each AI session starts a fresh container and removes it afterwards.
+
+**Claude Code:**
+
+```bash
+claude mcp add libreoffice -- docker run -i --rm -v /path/to/my-workspace:/data libreoffice-mcp
+```
+
+**Claude Desktop** (`claude_desktop_config.json`; double the backslashes on Windows):
 
 ```json
 {
   "mcpServers": {
     "libreoffice": {
       "command": "docker",
-      "args": ["run", "-i", "--rm",
-               "-v", "C:\\Users\\me\\Documents\\ai-workspace:/data",
-               "libreoffice-mcp"]
+      "args": ["run", "-i", "--rm", "-v", "C:\\Users\\me\\my-workspace:/data", "libreoffice-mcp"]
     }
   }
 }
 ```
 
-Use your own folder on the left of the colon (macOS/Linux: `/Users/me/ai-workspace:/data`).
-`-i` is required (it keeps stdin open); do **not** add `-t`.
+`-i` is required (it keeps stdin open); do **not** add `-t`. LibreOffice boots in the background
+in a couple of seconds, so the first request may wait briefly.
 
-**Claude Code:**
-
-```bash
-claude mcp add libreoffice -- docker run -i --rm -v /path/to/workspace:/data libreoffice-mcp
-```
-
-Each time the AI app starts, a fresh container starts and LibreOffice boots in the background
-(about 2 s on Linux/Docker; the first request waits for it). For zero wait, use Option B.
-
-Expose fewer tools by adding flags after the image name:
-`... libreoffice-mcp --apps writer` or `... libreoffice-mcp --read-only`.
-
-## Option B — a long-running HTTP server (docker compose)
+## Option B — an always-on HTTP server (docker compose)
 
 ```bash
-mkdir workspace                 # the folder the AI can read and edit
 docker compose up -d --build
-```
-
-* MCP endpoint: `http://localhost:8000/mcp`
-* Health: `http://localhost:8000/healthz` (process up), `/readyz` (LibreOffice ready)
-* Your files: `./workspace` on the host = `/data` in the container.
-* Stop: `docker compose down`. Logs: `docker compose logs -f`.
-
-Connect a client that supports HTTP MCP servers, e.g. Claude Code:
-
-```bash
 claude mcp add --transport http libreoffice http://localhost:8000/mcp
 ```
 
-LibreOffice stays warm, so requests are fast from the very first call. Settings go in the
-`environment:` section of `docker-compose.yml` (`LIBREOFFICE_MCP_APPS`, `…_READ_ONLY`, …); every
-command-line flag has a matching `LIBREOFFICE_MCP_*` variable. By default everything is enabled.
+* MCP endpoint: `http://localhost:8000/mcp`
+* Health checks for Docker/monitoring (not needed by you): `/healthz` = the server process is
+  up, `/readyz` = LibreOffice has started and can take requests.
+* Logs: `docker compose logs -f`. Stop: `docker compose down`.
+
+LibreOffice stays warm, so requests are fast from the very first call.
+
+## Choosing tools and other settings
+
+Everything is enabled by default. To change that, add flags after the image name (Option A) or in
+the `command:` line of `docker-compose.yml` (Option B), e.g. `--apps writer` or `--read-only`.
+Every flag has a matching `LIBREOFFICE_MCP_*` environment variable. The README lists the common ones.
 
 ## ⚠️ There is no authentication
 
@@ -83,31 +89,21 @@ login, a VPN, a private network such as Tailscale).
 
 ## Hosting it somewhere (a URL)
 
-The same image works on any host that runs containers: a small VPS with Docker, Fly.io,
-Railway, Render, Google Cloud Run, AWS ECS/Fargate…
+The same image works on any host that runs containers: a small VPS with Docker, Fly.io, Railway,
+Render, Google Cloud Run, AWS ECS/Fargate…
 
 * **Not Vercel/Netlify/Lambda-style serverless.** They need short-lived functions and have no
-  persistent disk; this server is a long-running process (LibreOffice takes seconds to start)
-  that works on real files.
-* Give it **~1 GB of RAM** (LibreOffice is the heavy part) and a **persistent volume** mounted
-  at `/data`, otherwise files vanish when the container restarts.
+  persistent disk; this is a long-running process that works on real files.
+* Give it **~1 GB of RAM** and a **persistent volume** mounted at `/data`, otherwise files vanish
+  when the container restarts.
 * Run it with `--transport http` and reach it through a hostname: add that hostname with
-  `LIBREOFFICE_MCP_ALLOWED_HOSTS=mcp.example.com` (otherwise requests get HTTP 421), or `*` if a
-  proxy in front already controls the Host header.
-* Put authentication in front (see the warning above).
-* Remember what "files" means when hosted: the tools read and write files **on the server's
-  disk**. A remote AI can create, edit and convert documents there, but there is no built-in way
-  yet to upload a local file or download the result (a future feature).
-* Scale = one container per workspace; requests inside a container are processed one at a time.
-
-## Paths and permissions
-
-* Inside the container use relative paths or `/data/...`. Windows-style paths from your host
-  (`C:\Users\me\...`) don't exist in there.
-* The server runs as user `ubuntu` (uid 1000). On a Linux host make sure the mounted folder is
-  writable by it (`chmod a+rwx workspace`, or `docker run --user "$(id -u):$(id -g)" ...`).
-  Docker Desktop (Windows/macOS) needs nothing special.
-* All file access is confined to `/data` (`LIBREOFFICE_MCP_ROOTS=/data` is preset).
+  `--allowed-host mcp.example.com` (otherwise requests get HTTP 421), or `*` if a proxy in front
+  already controls the Host header.
+* Put authentication in front (see above).
+* When hosted, the tools read and write files **on the server's disk**. A remote AI can create,
+  edit and convert documents there, but there is no built-in way yet to upload a local file or
+  download the result.
+* Requests inside one container are processed one at a time.
 
 ## Running the tests inside Linux
 
@@ -118,11 +114,4 @@ docker run --rm libreoffice-mcp:test
 
 ## Troubleshooting
 
-* *The first request is slow* — LibreOffice is still starting (a couple of seconds). With compose it is already warm.
-* *`docker run` exits immediately in Claude Desktop* — check you used `-i` and not `-t`, and that
-  the image name is right (`docker images`).
-* *Files appear but are owned by root / can't be edited on Linux* — see "Paths and permissions".
-* *Fonts look wrong in PDFs* — the image ships Liberation, DejaVu, Carlito and Caladea. Add other
-  fonts with a derived image (`FROM libreoffice-mcp` + `apt-get install fonts-…`); for Chinese/
-  Japanese/Korean text install `fonts-noto-cjk`.
-* More in [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).

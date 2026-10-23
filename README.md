@@ -2,37 +2,58 @@
 
 An [MCP](https://modelcontextprotocol.io) server that lets AI assistants (Claude Desktop, Claude
 Code, and any other MCP client) **create, read and edit LibreOffice / Microsoft Office documents**
-on your computer — no GUI, no copy-paste.
+— no GUI, no copy-paste.
 
-> Ask: *"Write a one-page project brief in `~/Documents/brief.docx` with a title, three sections, a
-> risks table and page numbers in the footer, then export it to PDF."* — and the assistant builds it.
+> Ask: *"Write a one-page project brief as `brief.docx` with a title, three sections, a risks
+> table and page numbers in the footer, then export it to PDF."* — and the assistant builds it.
 
 | | Status |
 |---|---|
 | **Writer** (text: `.odt` `.docx` `.doc` `.rtf` `.txt`) | ✅ 53 tools |
-| **Calc** (spreadsheets: `.ods` `.xlsx` `.csv`) | 🔜 next |
-| **Impress** (presentations: `.odp` `.pptx`) | 🔜 after Calc |
+| **Calc** (spreadsheets: `.ods` `.xlsx` `.csv`) | 🚧 in progress |
+| **Impress** (presentations: `.odp` `.pptx`) | 🚧 in progress |
 | Convert / export (PDF, docx↔odt, …), batch edits, document info | ✅ |
-
-Ships as a **Docker image** (LibreOffice included), so it runs the same on Windows, macOS and Linux.
 
 ---
 
+## How it works (read this first)
+
+* The **Docker container *is* the MCP server.** LibreOffice, its Python bridge and fonts are all
+  inside the image. You build the image once.
+* Your AI app (Claude Desktop, Claude Code…) only needs to be **told how to reach it**
+  (`claude mcp add …` or a few lines of JSON). It does not install anything else.
+* The AI can only see **one folder** on your computer: the *workspace* you mount into the container
+  as `/data`. See [The workspace folder](#the-workspace-folder).
+
 ## Quick start
 
-Everything (LibreOffice, its Python bridge, fonts) is inside the image; you only need Docker.
+### Step 1 — build the image (once)
+
+Needs [Docker](https://www.docker.com/products/docker-desktop/). The first build takes a few
+minutes (it downloads LibreOffice); later builds are cached.
 
 ```bash
 git clone https://github.com/harshithb3304/libre-office-mcp.git
 cd libre-office-mcp
 docker build -t libreoffice-mcp .
+docker run --rm libreoffice-mcp doctor      # optional check: should print [ok] twice
 ```
 
-Then add it to your AI app. The folder you mount at `/data` is the **only** place the AI can read
-and write; it refers to files by short paths like `report.docx`.
+### Step 2 — connect your AI app (pick **one** option)
+
+**Option A — the AI app starts the container itself** (simplest; nothing stays running).
+The part after `-v` is `<a folder on your computer>:/data`.
 
 <details open>
-<summary><b>Claude Desktop</b> — edit <code>claude_desktop_config.json</code></summary>
+<summary><b>Claude Code</b></summary>
+
+```bash
+claude mcp add libreoffice -- docker run -i --rm -v /path/to/my-workspace:/data libreoffice-mcp
+```
+</details>
+
+<details>
+<summary><b>Claude Desktop</b> — add to <code>claude_desktop_config.json</code></summary>
 
 (Windows: `%APPDATA%\Claude\`, macOS: `~/Library/Application Support/Claude/`)
 
@@ -41,72 +62,69 @@ and write; it refers to files by short paths like `report.docx`.
   "mcpServers": {
     "libreoffice": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "-v", "C:\Users\me\ai-workspace:/data", "libreoffice-mcp"]
+      "args": ["run", "-i", "--rm", "-v", "C:\\Users\\me\\my-workspace:/data", "libreoffice-mcp"]
     }
   }
 }
 ```
-Restart Claude Desktop. LibreOffice starts in the background (a couple of seconds); edits then take about 0.1–0.5 s.
+Restart Claude Desktop. (On Windows, double every backslash in JSON.)
 </details>
 
-<details>
-<summary><b>Claude Code</b></summary>
+**Option B — keep the server running in the background** (docker compose; instant responses, one
+URL for any client). Start it, then just register its address:
 
 ```bash
-claude mcp add libreoffice -- docker run -i --rm -v /path/to/workspace:/data libreoffice-mcp
-```
-</details>
-
-<details>
-<summary><b>Always-on HTTP server (docker compose)</b> — no start-up wait, one URL for any client</summary>
-
-```bash
-mkdir workspace && docker compose up -d --build     # endpoint: http://localhost:8000/mcp
+docker compose up -d --build        # starts the server on http://localhost:8000/mcp
 claude mcp add --transport http libreoffice http://localhost:8000/mcp
 ```
-There is **no authentication**: the compose file binds to `127.0.0.1` only. See
-[docs/DOCKER.md](docs/DOCKER.md) for hosting it on a server and what to watch out for.
-</details>
 
-### Build and run it yourself with Docker
+Compose uses the folder `./workspace` next to `docker-compose.yml` (created automatically). To
+use a different folder: `WORKSPACE=/path/to/my-workspace docker compose up -d`
+(or put `WORKSPACE=...` in a `.env` file next to the compose file).
 
-There is no published image: you build it once on your own machine (needs Docker, ~5 min the
-first time because LibreOffice is downloaded; later builds are cached).
+There is **no authentication**; the port is published on `127.0.0.1` only, so just your
+computer can reach it. Read [docs/DOCKER.md](docs/DOCKER.md) before exposing it further.
 
-```bash
-git clone https://github.com/harshithb3304/libre-office-mcp.git
-cd libre-office-mcp
+### Step 3 — try it
 
-# 1. Build the image
-docker build -t libreoffice-mcp .
+Ask your AI: *"Create `hello.docx` with a heading and a three-item bullet list."*
+Then open `hello.docx` from your workspace folder.
 
-# 2a. Run it from an AI app (stdio): the app launches the container itself.
-#     Use the "Claude Desktop" / "Claude Code" snippets above. To try it by hand:
-docker run --rm libreoffice-mcp doctor
-
-# 2b. ...or keep it running in the background (HTTP) with docker compose:
-mkdir workspace                     # the folder the AI can read/write (shown as /data inside)
-docker compose up -d --build        # builds the image if needed, then starts it
-curl http://localhost:8000/healthz  # {"status":"ok"}
-#   MCP endpoint for your client: http://localhost:8000/mcp
-```
+### Everyday commands
 
 | Task | Command |
 |---|---|
-| See logs | `docker compose logs -f` |
-| Stop | `docker compose down` |
-| Update after `git pull` | `docker compose up -d --build` (or `docker build -t libreoffice-mcp .` for stdio) |
-| Run the tests on Linux | `docker build --target test -t libreoffice-mcp:test . && docker run --rm libreoffice-mcp:test` |
-| Remove everything | `docker compose down --rmi local` and delete the folder |
+| See logs (Option B) | `docker compose logs -f` |
+| Stop (Option B) | `docker compose down` |
+| Update after `git pull` | `docker build -t libreoffice-mcp .` (Option B: `docker compose up -d --build`) |
+| Run the tests (on Linux, inside Docker) | `docker build --target test -t libreoffice-mcp:test . && docker run --rm libreoffice-mcp:test` |
+| Remove the image | `docker rmi libreoffice-mcp` |
 
-The compose file only listens on `127.0.0.1` and has **no authentication**; see
-[docs/DOCKER.md](docs/DOCKER.md) before exposing it anywhere else.
+---
+
+## The workspace folder
+
+The container cannot see your computer; it only sees the folder you mount. We call it the
+**workspace**, and inside the container it appears as `/data`.
+
+* **Relative paths** the AI uses (`report.docx`, `clients/acme.docx`) resolve to the workspace.
+  It is *not* your terminal's current directory unless you mount it (`-v "$(pwd):/data"`).
+* **Absolute paths** work only inside `/data`; anything else is refused. Paths from your own
+  computer (`C:\Users\…`) don't exist in the container, so just give file names.
+* It lives **on your disk**, not in the image or container. Stopping or deleting the container
+  does not touch it, and the image does not grow as you create documents.
+* To work on an existing file, copy it into the workspace first.
+* **Close a file before the AI edits it.** Word (on Windows) locks open files, so the write is
+  refused; other apps will show stale content until you reload.
+
+More detail and permissions on Linux hosts: [docs/DOCKER.md](docs/DOCKER.md).
 
 ---
 
 ## Choosing which tools the AI gets
 
-More tools = more context the model must read. Expose only what you need:
+By default **everything is enabled**. More tools means more for the model to read, so you can
+narrow it down by adding flags after the image name:
 
 | Goal | Flag |
 |---|---|
@@ -116,19 +134,18 @@ More tools = more context the model must read. Expose only what you need:
 | Hide risky tools | `--exclude "*delete*" --exclude "*replace*"` |
 | Only a hand-picked set | `--include "writer_get_*" --include "writer_add_*"` |
 
-By default **everything is enabled**. To narrow it down, add flags after the image name
-(`… libreoffice-mcp --apps writer --read-only`); `/data` is already the root and the default
-folder. `docker run --rm libreoffice-mcp tools --apps writer` prints exactly which tools a set of
-flags exposes. Every flag also has a `LIBREOFFICE_MCP_*` environment variable.
-
-`office_*` core tools (create, convert, info, batch edit…) are always available unless excluded.
+Example: `claude mcp add libreoffice -- docker run -i --rm -v /path/ws:/data libreoffice-mcp --apps writer`.
+`docker run --rm libreoffice-mcp tools --apps writer` prints exactly which tools a set of flags
+exposes. Every flag also has a `LIBREOFFICE_MCP_*` environment variable. The `office_*` core tools
+(create, convert, info, batch edit…) stay available unless excluded.
 
 ---
 
-## What the AI can do (Writer)
+## What the AI can do
 
 The full list with parameters is in **[docs/TOOLS.md](docs/TOOLS.md)** (generated from the code).
 
+**Writer**
 - **Read** — text (paged), structure (every paragraph/table with an index), outline, find, paragraph formatting, styles, tables, images, comments, bookmarks, links, footnotes, page setup, headers/footers, tracked changes
 - **Write** — paragraphs, headings, bullet/numbered lists, whole sections in one call (`writer_add_content`), page breaks, merge another file
 - **Format** — bold/italic/colour/font/size on specific text, paragraph alignment & spacing, create/modify styles
@@ -136,9 +153,11 @@ The full list with parameters is in **[docs/TOOLS.md](docs/TOOLS.md)** (generate
 - **Objects** — images (embedded, resizable, alt text), hyperlinks, bookmarks, footnotes, review comments, table of contents
 - **Page** — paper size, orientation, margins, header/footer text with “Page N of M”
 - **Review** — turn change tracking on/off, accept or reject all changes
-- **Any document** — create, info, copy, **convert/export (PDF, docx, odt, html, txt…)**, and `office_batch_edit` (many edits, one load, one save, all-or-nothing)
 
-Content is addressed by **block index** (0 = first paragraph or table). The AI calls
+**Any document** — create, info, copy, **convert/export (PDF, docx, odt, html, txt…)**, and
+`office_batch_edit` (many edits, one load, one save, all-or-nothing).
+
+Writer content is addressed by **block index** (0 = first paragraph or table): the AI calls
 `writer_get_structure` to see the indexes, then edits by index — no fragile text matching.
 
 ---
@@ -148,7 +167,7 @@ Content is addressed by **block index** (0 = first paragraph or table). The AI c
 - **Your file is never half-written.** Each request edits a private copy and replaces your file atomically at the end. A crash, a timeout or a failing step in a batch leaves the original untouched.
 - **No races.** Requests run one at a time, so two simultaneous edits to the same file never interleave (the second waits).
 - **Macros never run**, even in documents that contain them.
-- **Optional sandbox:** `--root` limits every read and write to chosen folders; `..` and symlink escapes are resolved first.
+- **The container only sees the workspace** (`/data`); paths outside it, `..` and symlink escapes are refused.
 - **No lock files** are created next to your documents, and a stuck or cancelled request is killed cleanly (no leftover LibreOffice processes).
 - There is **no undo**. Edits are saved immediately; keep backups of important files (or use `office_copy_document` first).
 
@@ -181,21 +200,13 @@ The old `libreoffice:{path}` MCP resource is not ported yet.
 
 | | |
 |---|---|
-| [docs/DOCKER.md](docs/DOCKER.md) | Run with Docker, hosting, permissions |
+| [docs/DOCKER.md](docs/DOCKER.md) | Docker in detail: options, workspace, hosting, permissions |
 | [AGENTS.md](AGENTS.md) | Repo map and rules for AI coding agents / new contributors |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How it works, why it is built this way, file-by-file map |
 | [docs/ADDING_A_TOOL.md](docs/ADDING_A_TOOL.md) | Step-by-step guide to add a tool (start here to contribute) |
 | [docs/TOOLS.md](docs/TOOLS.md) | Every tool and parameter (generated) |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Setup problems, logs, common errors |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Problems, logs, common errors |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup, tests, code style |
-
-## Development
-
-Tests run inside the Docker image (details in [CONTRIBUTING.md](CONTRIBUTING.md)):
-
-```bash
-docker build --target test -t libreoffice-mcp:test . && docker run --rm libreoffice-mcp:test
-```
 
 ## Related projects
 

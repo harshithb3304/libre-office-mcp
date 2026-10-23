@@ -153,14 +153,6 @@ Worker → server: `{"id": 7, "ok": true, "result": {…}}` or `{"id": 7, "ok": 
 Request kinds: `read`, `edit`, `create`, `export`. Full description in
 [`protocol.py`](../src/libreoffice_mcp/protocol.py).
 
-## Known limitations
-
-* No undo; edits are saved on every call.
-* Only one operation runs at a time (by design).
-* Very large documents (hundreds of pages) make every call slower because the file is loaded each time. Use `office_batch_edit` / `writer_add_content` to amortise.
-* Features that need the LibreOffice UI layout (page numbers in the TOC, page counts) rely on the hidden headless layout; results can differ slightly from the desktop app.
-* The old v1 MCP *resource* (`libreoffice:{path}`) is not ported; MCP *tasks*, *elicitation* and *progress* are not used yet.
-
 ## Roadmap
 
 1. ✅ Foundation + Writer (this branch)
