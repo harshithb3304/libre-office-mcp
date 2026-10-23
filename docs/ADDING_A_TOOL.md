@@ -81,8 +81,9 @@ async def writer_delete_bookmark(path: DocPath, name: str) -> dict[str, Any]:
   `state.paths.resolve(...)`.
 * Make sure the module is imported in `tools/writer/__init__.py`.
 
-For a **new app** (`calc`, `impress`), create `tools/calc/__init__.py` and
-`worker/ops/calc/__init__.py` that import their submodules; the loaders pick them up by name.
+Adding to an existing app (`writer`, `calc`, `impress`)? Put the new module next to its siblings and
+import it from that app's `__init__.py` in both `tools/<app>/` and `worker/ops/<app>/`. The
+`calc` and `impress` packages are good examples of a larger layout.
 
 ## 3. Test it
 

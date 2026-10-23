@@ -58,7 +58,8 @@ You reached the server through a hostname other than `localhost`. Add it:
 `--allowed-host mcp.example.com`.
 
 **“… needs a writer document, but x.ods is a calc document”**
-You used a `writer_*` tool on a spreadsheet. (`calc_*` tools are not implemented yet.)
+You used a `writer_*` tool on a spreadsheet. Use `calc_*` tools for spreadsheets and
+`impress_*` tools for presentations.
 
 **The AI keeps editing the wrong paragraph**
 Indexes shift after inserts/deletes. Tell it to call `writer_get_structure` again, or to use

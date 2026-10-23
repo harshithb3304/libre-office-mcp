@@ -2,8 +2,8 @@
 
     tools/core.py       app-independent tools (create, convert, list, batch...)
     tools/writer/       Writer tools  (writer_*)
-    tools/calc/         Calc tools    (calc_*)      [planned]
-    tools/impress/      Impress tools (impress_*)   [planned]
+    tools/calc/         Calc tools    (calc_*)
+    tools/impress/      Impress tools (impress_*)
 
 A tool only describes the call (name, typed parameters, docstring) and forwards it to
 the worker; the LibreOffice logic lives in ``libreoffice_mcp/worker/ops``.

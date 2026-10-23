@@ -1,7 +1,7 @@
 # AGENTS.md — guide for AI coding agents and new contributors
 
 An MCP server that lets AI assistants create and edit documents with LibreOffice.
-**Implemented: Writer (53 tools) + core `office_*` tools. Planned: Calc, then Impress.**
+**Implemented: Writer (55 tools), Calc (51), Impress (42) and core `office_*` tools (8).**
 Humans: start with [README.md](README.md); this file is a map of *what is where* and the rules
 that are easy to break.
 
@@ -106,9 +106,7 @@ docker compose up -d --build                           # run the server (http://
 
 ## Current status / next steps
 
-* ✅ Foundation, Writer, Docker image/compose, HTTP transport (no auth by design — see
-  `http_server.py` docstring), docs.
-* ⏭ Calc (`calc_*`): sheets, ranges, formulas, formatting, charts, CSV.
-* ⏭ Impress (`impress_*`): slides, text/shapes/images, notes.
+* ✅ Foundation, Writer, Calc, Impress, Docker image/compose, HTTP transport (no auth by design —
+  see `http_server.py` docstring), docs.
 * Ideas: render a page/slide to PNG so the AI can *see* results; MCP resource for document text;
   keep documents open between calls for very large files.

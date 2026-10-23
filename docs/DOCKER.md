@@ -37,14 +37,7 @@ It is the *only* thing the AI can see.
 ## Option A — the AI app starts the container (stdio)
 
 Nothing stays running; each AI session starts a fresh container and removes it afterwards.
-
-**Claude Code:**
-
-```bash
-claude mcp add libreoffice -- docker run -i --rm -v /path/to/my-workspace:/data libreoffice-mcp
-```
-
-**Claude Desktop** (`claude_desktop_config.json`; double the backslashes on Windows):
+Standard MCP JSON, understood by most clients (double the backslashes of a Windows path):
 
 ```json
 {
@@ -57,6 +50,7 @@ claude mcp add libreoffice -- docker run -i --rm -v /path/to/my-workspace:/data 
 }
 ```
 
+Claude Code shortcut: `claude mcp add libreoffice -- docker run -i --rm -v /path/to/my-workspace:/data libreoffice-mcp`.
 `-i` is required (it keeps stdin open); do **not** add `-t`. LibreOffice boots in the background
 in a couple of seconds, so the first request may wait briefly.
 
@@ -64,8 +58,13 @@ in a couple of seconds, so the first request may wait briefly.
 
 ```bash
 docker compose up -d --build
-claude mcp add --transport http libreoffice http://localhost:8000/mcp
 ```
+
+Then point any client that accepts a URL at `http://localhost:8000/mcp` — in standard JSON
+`{"mcpServers": {"libreoffice": {"url": "http://localhost:8000/mcp"}}}` (some clients also want
+`"type": "http"`). Claude Code shortcut:
+`claude mcp add --transport http libreoffice http://localhost:8000/mcp`.
+
 
 * MCP endpoint: `http://localhost:8000/mcp`
 * Health checks for Docker/monitoring (not needed by you): `/healthz` = the server process is

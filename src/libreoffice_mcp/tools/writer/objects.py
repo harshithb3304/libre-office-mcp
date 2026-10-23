@@ -225,7 +225,7 @@ async def writer_insert_toc(
 @tool(W, "edit", title="Turn change tracking on/off")
 async def writer_set_track_changes(path: DocPath, enabled: bool) -> dict[str, Any]:
     """Enable or disable change tracking. While on, later edits are recorded as changes a
-    human can review (accept/reject) in LibreOffice or Word."""
+    human can review (accept/reject) in LibreOffice."""
     return await edit(path, "writer.set_track_changes", enabled=enabled)
 
 

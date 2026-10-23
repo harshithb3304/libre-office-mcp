@@ -156,7 +156,7 @@ Request kinds: `read`, `edit`, `create`, `export`. Full description in
 ## Roadmap
 
 1. ✅ Foundation + Writer (this branch)
-2. Calc: sheets, ranges, formulas, formatting, charts, named ranges, CSV
-3. Impress: slides, text/shapes/images, notes, layouts, transitions
+2. ✅ Calc
+3. ✅ Impress
 4. Document preview as an image so the AI can *see* its result (PDF → PNG)
 5. Upload/download tools so a *hosted* server is usable by remote users (today files live on the server's disk)
