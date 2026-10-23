@@ -6,7 +6,7 @@ text documents, spreadsheets and presentations — no GUI, no copy-paste.
 
 | | Tools |
 |---|---|
-| **Writer** — text documents (`.odt` `.docx` `.rtf` `.txt`) | ✅ 53 |
+| **Writer** — text documents (`.odt` `.docx` `.rtf` `.txt`) | ✅ 55 |
 | **Calc** — spreadsheets (`.ods` `.xlsx` `.csv`) | ✅ 51 |
 | **Impress** — presentations (`.odp` `.pptx`) | ✅ 42 |
 | Create, info, copy, **convert / export to PDF**, batch edits | ✅ 8 |
