@@ -208,11 +208,6 @@ The old `libreoffice:{path}` MCP resource is not ported yet.
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Problems, logs, common errors |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup, tests, code style |
 
-## Related projects
-
-[nelson-mcp](https://github.com/quazardous/nelson-mcp) takes a different approach: an extension that
-runs *inside* a running LibreOffice and edits the document you have open on screen. This project
-works on files with no GUI (good for automation and batch work); pick the one that fits your workflow.
 
 ## License
 
