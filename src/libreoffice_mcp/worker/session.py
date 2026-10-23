@@ -158,7 +158,7 @@ def atomic_replace(source: Path, destination: Path) -> None:
 
     The data is first copied to a hidden temp file *in the destination folder*
     (``os.replace`` is only atomic within one filesystem), then renamed over the
-    target. On Windows, antivirus/indexers can briefly lock files, so we retry.
+    target. Bind-mounted host folders (Docker Desktop) can briefly lock files, so we retry.
     """
     destination.parent.mkdir(parents=True, exist_ok=True)
     temp = destination.with_name(f".{destination.name}.{uuid.uuid4().hex[:8]}.tmp")
@@ -171,7 +171,7 @@ def atomic_replace(source: Path, destination: Path) -> None:
             try:
                 os.replace(temp, destination)
                 return
-            except PermissionError as exc:  # file in use (Windows) - wait and retry
+            except PermissionError as exc:  # file briefly in use - wait and retry
                 last = exc
                 time.sleep(0.2)
         raise OpError(

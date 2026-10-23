@@ -9,13 +9,13 @@ from libreoffice_mcp.config import Settings, parse_settings
 
 
 def _serve(settings: Settings) -> int:
+    from libreoffice_mcp import http_server
     from libreoffice_mcp.app import build_server
 
     mcp = build_server(settings)
     if settings.transport == "http":
-        # Stateless + JSON responses: no sessions to track, simplest possible HTTP mode.
-        mcp.run("streamable-http", host=settings.host, port=settings.port,
-                json_response=True, stateless_http=True)  # fmt: skip
+        http_server.register_health_routes(mcp)
+        http_server.run_http(mcp, settings)
     else:
         mcp.run("stdio")
     return 0

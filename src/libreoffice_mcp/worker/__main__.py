@@ -1,8 +1,8 @@
 """Entry point: ``python -m libreoffice_mcp.worker`` or ``python /path/to/worker/__main__.py``.
 
 The second form is what the server uses, because LibreOffice's bundled Python
-cannot be assumed to have this package installed (and Windows builds ignore
-PYTHONPATH). We therefore put the package root on ``sys.path`` ourselves.
+cannot be assumed to have this package installed (it runs on the system Python,
+not the server's virtualenv). We therefore put the package root on ``sys.path`` ourselves.
 """
 
 import os

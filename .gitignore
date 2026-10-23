@@ -13,3 +13,4 @@ wheels/
 .mypy_cache/
 uv.lock.bak
 *.log
+workspace/

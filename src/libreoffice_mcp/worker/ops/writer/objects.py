@@ -8,7 +8,6 @@ from typing import Any
 
 from libreoffice_mcp import protocol
 from libreoffice_mcp.worker.ops.writer import helpers as h
-from libreoffice_mcp.worker.ops.writer.read import first_page_style
 from libreoffice_mcp.worker.registry import OpError, op
 from libreoffice_mcp.worker.session import Session
 from libreoffice_mcp.worker.util import enum, file_url, pv
@@ -20,7 +19,7 @@ _PX_TO_MM100 = 26.46  # one pixel at 96 DPI, in 1/100 mm
 
 
 def _text_width_mm100(doc: Any) -> int:
-    style = doc.getStyleFamilies().getByName("PageStyles").getByName(first_page_style(doc))
+    style = doc.getStyleFamilies().getByName("PageStyles").getByName(h.first_page_style(doc))
     return int(style.Width - style.LeftMargin - style.RightMargin)
 
 

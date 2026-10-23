@@ -40,6 +40,9 @@ class Settings:
     transport: str = "stdio"  # "stdio" | "http"
     host: str = "127.0.0.1"
     port: int = 8000
+    #: Extra Host header values the HTTP transport accepts (e.g. "mcp.example.com").
+    #: "*" turns the Host check off (only do that behind a proxy that sets Host itself).
+    allowed_hosts: tuple[str, ...] = ()
 
 
 def _env(name: str, default: str | None = None) -> str | None:
@@ -90,6 +93,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--port", type=int, default=int(_env("PORT", "8000")), help="http transport port"
     )
+    p.add_argument("--allowed-host", action="append", default=None, metavar="HOST",
+                   help="accept this Host header over http, e.g. mcp.example.com (repeatable; "
+                        "env LIBREOFFICE_MCP_ALLOWED_HOSTS). localhost is always allowed")  # fmt: skip
     return p
 
 
@@ -123,5 +129,6 @@ def parse_settings(argv: list[str] | None = None) -> tuple[str, Settings]:
         transport=args.transport,
         host=args.host,
         port=args.port,
+        allowed_hosts=tuple(args.allowed_host or _csv(_env("ALLOWED_HOSTS"))),
     )
     return args.command, settings

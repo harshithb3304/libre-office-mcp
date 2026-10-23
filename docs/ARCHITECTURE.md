@@ -29,19 +29,16 @@ add a tool, jump to [ADDING_A_TOOL.md](ADDING_A_TOOL.md).
 
 ## Why two Python programs?
 
-LibreOffice is controlled through **UNO**, exposed to Python by a module called `uno`. On Windows
-(and macOS) that module exists *only* inside the Python interpreter bundled with LibreOffice
-(`C:\Program Files\LibreOffice\program\python.exe`). That interpreter can't easily install the
-`mcp` package, and your normal Python can't `import uno`. So:
+LibreOffice is controlled through **UNO**, exposed to Python by a module called `uno`. In the
+Docker image that module comes from the distro package `python3-uno` and is importable only from
+the **system** `/usr/bin/python3`, not from the virtualenv that holds the `mcp` SDK. So:
 
-* the **server** runs in a normal Python (managed by `uv`), speaks MCP, and knows nothing about UNO;
-* the **worker** runs in LibreOffice's Python, speaks UNO, and knows nothing about MCP;
+* the **server** runs in the virtualenv, speaks MCP, and knows nothing about UNO;
+* the **worker** runs on the system Python, speaks UNO, and knows nothing about MCP;
 * they talk over a tiny line-based JSON protocol ([`protocol.py`](../src/libreoffice_mcp/protocol.py)).
 
-On Linux, `uno` comes from the distro package `python3-uno`; `locate.py` finds a suitable
-interpreter automatically (or use `LIBREOFFICE_MCP_PYTHON`). The worker only uses the standard
-library, so it runs on any Python ≥ 3.10 that has `uno` (LibreOffice 25.2 bundles 3.10; newer
-releases bundle 3.12).
+The worker only uses the standard library. `locate.py` finds the right interpreter (or use
+`LIBREOFFICE_MCP_PYTHON`).
 
 > **v1 did something similar** with three processes and TCP ports 2002/8765. v2 uses one worker
 > and stdin/stdout instead: no ports to collide on, nothing to forget to start, and the worker
@@ -68,6 +65,15 @@ Example: the AI calls `writer_add_paragraph(path="report.docx", text="Hello")`.
 `office_batch_edit` (and `writer_add_content`) run *many* operations in steps 4–6 with a single
 load and a single save — much faster, and **all-or-nothing**.
 
+## Running it: stdio, HTTP, Docker
+
+* **stdio** (default): the AI app launches the server and talks over stdin/stdout.
+* **HTTP** (`--transport http`): MCP "Streamable HTTP" at `/mcp`, stateless, with `/healthz` and
+  `/readyz`. No authentication — see `http_server.py` and [DOCKER.md](DOCKER.md).
+* **Docker** packages LibreOffice + fonts + the server; the mounted `/data` folder is the only
+  thing the AI can touch (`LIBREOFFICE_MCP_ROOTS=/data`). `tini` is PID 1 so stray processes are
+  reaped and stop signals reach LibreOffice.
+
 ## Safety and reliability
 
 | Concern | How it is handled | Where |
@@ -81,18 +87,9 @@ load and a single save — much faster, and **all-or-nothing**.
 | Hung LibreOffice | Per-request timeout (default 120 s) → worker is killed, original file untouched, next call restarts it | `client.py` |
 | Client cancels a request | The worker is killed (UNO calls can't be interrupted safely) and restarted on demand | `client.py` |
 | LibreOffice crashes | Worker notices, exits; the server restarts it and **retries the request once** (safe because the original is untouched) | `client.py`, `worker/main.py` |
-| Orphan `soffice` processes | stdin EOF → worker shuts soffice down; on Windows a kill-on-close *Job Object* kills soffice even if the worker is killed; on Linux a process group is killed | `worker/office.py` |
+| Orphan `soffice` processes | stdin EOF → worker shuts soffice down. soffice stays in the worker's process group, and the server kills that whole group on timeout/cancel, so nothing survives | `worker/office.py`, `client.py` |
 | Interference from the user's own LibreOffice | Private temporary profile (`-env:UserInstallation`) and a unique pipe name | `worker/office.py` |
-| Slow first request | LibreOffice is started in the background when the server starts (10–30 s); the MCP handshake never waits for it | `app.py`, `client.py` |
-
-### Platform quirks that shaped the code
-
-* **Windows:** `soffice.exe` and `program\python.exe` are *launcher stubs*. `soffice.exe` starts
-  `soffice.bin` and exits; `python.exe` spawns `python-core\bin\python.exe`. Consequences: the
-  process handle can't be used for health checks (we ask the UNO bridge), and killing "the worker"
-  needs a process-**tree** kill (`taskkill /T`) plus the job object above.
-* **Linux/macOS:** processes are started in their own session so a group kill reaches the whole tree.
-* LibreOffice start-up is slow (10–20 s on a typical Windows laptop), so the worker is long-lived.
+| Slow first request | LibreOffice is started in the background when the server starts (a few seconds); the MCP handshake never waits for it | `app.py`, `client.py` |
 
 ## Design decisions (and what we chose *not* to do)
 
@@ -119,6 +116,7 @@ src/libreoffice_mcp/
   app.py            builds the MCP server, start-up/shutdown, the instructions the AI reads
   state.py          the shared Settings / PathPolicy / OfficeClient used by tools
   client.py         OfficeClient: starts/talks to the worker, lock, timeouts, restarts
+  http_server.py    optional HTTP transport: /healthz, /readyz, Host check (no auth by design)
   paths.py          path resolution and the --root sandbox
   errors.py         OfficeError: messages meant for the AI (a ToolError)
   protocol.py       worker message format  (stdlib only, shared with the worker)
@@ -134,7 +132,7 @@ src/libreoffice_mcp/
   worker/           ── runs inside LibreOffice's Python (stdlib + uno only) ──
     __main__.py       entry point (puts the package on sys.path itself)
     main.py           stdin/stdout loop; exits if soffice dies
-    office.py         starts/stops soffice; Windows job object
+    office.py         starts/stops soffice
     session.py        scratch copy, load, atomic replace, Session object given to operations
     runner.py         one request: open → run ops → save → close
     registry.py       @op decorator, OpError
@@ -144,6 +142,7 @@ src/libreoffice_mcp/
       writer/           writer.* operations: helpers, read, content, formatting, tables, page, objects, review
 tests/              unit tests (no LibreOffice), worker tests, MCP-client tests (real LibreOffice)
 scripts/            gen_tool_docs.py
+Dockerfile          runtime image (+ `test` target); docker-compose.yml: long-running HTTP server
 ```
 
 ## The worker protocol (for the curious)
@@ -168,4 +167,4 @@ Request kinds: `read`, `edit`, `create`, `export`. Full description in
 2. Calc: sheets, ranges, formulas, formatting, charts, named ranges, CSV
 3. Impress: slides, text/shapes/images, notes, layouts, transitions
 4. Document preview as an image so the AI can *see* its result (PDF → PNG)
-5. Optional hosting guide (Docker + HTTP + auth) once all three apps are in
+5. Upload/download tools so a *hosted* server is usable by remote users (today files live on the server's disk)

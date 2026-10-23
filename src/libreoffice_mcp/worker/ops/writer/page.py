@@ -18,12 +18,6 @@ PAPER = {
 }
 
 
-def _used_page_styles(doc: Any) -> list[Any]:
-    styles = doc.getStyleFamilies().getByName("PageStyles")
-    used = [styles.getByName(n) for n in styles.getElementNames() if styles.getByName(n).isInUse()]
-    return used or [styles.getByName("Standard")]
-
-
 @op("writer.set_page_setup", kind="writer", mutates=True)
 def set_page_setup(
     s: Session,
@@ -40,7 +34,7 @@ def set_page_setup(
     if orientation is not None and orientation not in ("portrait", "landscape"):
         raise OpError("orientation must be 'portrait' or 'landscape'.")
     changed: set[str] = set()
-    for style in _used_page_styles(s.doc):
+    for style in h.used_page_styles(s.doc):
         if paper is not None or orientation is not None:
             width, height = PAPER[paper] if paper else (style.Width, style.Height)
             landscape = orientation == "landscape" if orientation else bool(style.IsLandscape)
@@ -100,7 +94,7 @@ def set_header_footer(
     if header_text is None and footer_text is None and page_numbers == "none":
         raise OpError("Nothing to change: give header_text, footer_text or page_numbers.")
     changed = []
-    for style in _used_page_styles(s.doc):
+    for style in h.used_page_styles(s.doc):
         if header_text is not None:
             style.HeaderIsOn = header_text != ""
             if header_text:

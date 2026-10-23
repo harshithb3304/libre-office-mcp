@@ -334,20 +334,10 @@ def get_footnotes(s: Session) -> dict[str, Any]:
     return {"count": len(out), "footnotes": out}
 
 
-def first_page_style(doc: Any) -> str:
-    enumeration = doc.getText().createEnumeration()
-    if enumeration.hasMoreElements():
-        try:
-            return enumeration.nextElement().PageStyleName or "Standard"
-        except Exception:
-            pass
-    return "Standard"
-
-
 @op("writer.get_page_setup", kind="writer")
 def get_page_setup(s: Session) -> dict[str, Any]:
     """Paper size, orientation and margins of the document's first page style."""
-    name = first_page_style(s.doc)
+    name = h.first_page_style(s.doc)
     st = s.doc.getStyleFamilies().getByName("PageStyles").getByName(name)
     return {
         "page_style": name,
@@ -366,17 +356,13 @@ def get_page_setup(s: Session) -> dict[str, Any]:
 @op("writer.get_headers_footers", kind="writer")
 def get_headers_footers(s: Session) -> dict[str, Any]:
     """Header and footer text of every page style in use."""
-    styles = s.doc.getStyleFamilies().getByName("PageStyles")
     out = []
-    for name in styles.getElementNames():
-        st = styles.getByName(name)
-        if not st.isInUse():
-            continue
+    for style in h.used_page_styles(s.doc):
         out.append(
             {
-                "page_style": name,
-                "header": st.HeaderText.getString() if st.HeaderIsOn else None,
-                "footer": st.FooterText.getString() if st.FooterIsOn else None,
+                "page_style": style.getName(),
+                "header": style.HeaderText.getString() if style.HeaderIsOn else None,
+                "footer": style.FooterText.getString() if style.FooterIsOn else None,
             }
         )
     return {"page_styles": out}

@@ -22,11 +22,10 @@ Big picture (see docs/ARCHITECTURE.md for the diagram)::
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import os
 import signal
-import subprocess
-import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -58,6 +57,7 @@ class OfficeClient:
         self.worker_info: dict[str, Any] = {}
         self.requests_served = 0
         self.restarts = 0
+        self._spawned_before = False
 
     # -- public API ----------------------------------------------------------
 
@@ -116,6 +116,13 @@ class OfficeClient:
         proc, self._proc = self._proc, None
         if proc is None or proc.returncode is not None:
             return
+        if not self.worker_info:
+            # Still starting up: the worker is not reading its input yet, so a polite
+            # shutdown request would just sit there until LibreOffice finished booting.
+            await self._kill(proc)
+            if self._stderr_task:
+                self._stderr_task.cancel()
+            return
         try:
             proc.stdin.write(protocol.encode({"type": "shutdown"}))  # type: ignore[union-attr]
             await proc.stdin.drain()  # type: ignore[union-attr]
@@ -129,6 +136,7 @@ class OfficeClient:
         running = self._proc is not None and self._proc.returncode is None
         return {
             "running": running,
+            "ready": running and bool(self.worker_info),
             "worker_pid": self._proc.pid if running and self._proc else None,
             "uptime_seconds": int(time.monotonic() - self._started_at) if running else 0,
             "requests_served": self.requests_served,
@@ -214,9 +222,10 @@ class OfficeClient:
         """Start the worker if it is not running. Caller must hold ``self._lock``."""
         if self._proc is not None and self._proc.returncode is None:
             return
-        if self._proc is not None:
-            self.restarts += 1
-            self._proc = None
+        self._proc = None
+        if self._spawned_before:
+            self.restarts += 1  # a replacement for a worker that died or was killed
+        self._spawned_before = True
         await self._spawn()
 
     async def _spawn(self) -> None:
@@ -237,20 +246,16 @@ class OfficeClient:
             "--startup-timeout", str(self.settings.startup_timeout),
             "--log-level", self.settings.log_level,
         ]  # fmt: skip
-        kwargs: dict[str, Any] = {}
-        if sys.platform == "win32":
-            kwargs["creationflags"] = 0x08000000  # CREATE_NO_WINDOW
-        else:
-            kwargs["start_new_session"] = True  # own process group, so _kill can reap the tree
-        log.info("starting LibreOffice worker (first start can take 10-30 s)")
+        log.info("starting LibreOffice worker")
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             limit=_STREAM_LIMIT,
-            **kwargs,
+            start_new_session=True,  # own process group: _kill() takes worker + soffice together
         )
+        self.worker_info = {}  # filled in once the worker reports "ready"
         self._proc = proc
         self._stderr_task = asyncio.create_task(self._pump_stderr(proc))
         try:
@@ -304,20 +309,8 @@ class OfficeClient:
             self._proc = None
         if proc is None or proc.returncode is not None:
             return
-        try:
-            if sys.platform == "win32":
-                # LibreOffice's python.exe is a launcher; /T kills the real worker under it.
-                # The worker's kill-on-close job object then takes soffice.bin down too.
-                await asyncio.to_thread(
-                    subprocess.run,
-                    ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                    capture_output=True,
-                    check=False,
-                )
-            else:
-                os.killpg(proc.pid, signal.SIGKILL)
-        except (OSError, ProcessLookupError):
-            pass
+        with contextlib.suppress(OSError):
+            os.killpg(proc.pid, signal.SIGKILL)  # the whole group: worker and soffice
         try:
             await asyncio.wait_for(proc.wait(), timeout=10)
         except TimeoutError:

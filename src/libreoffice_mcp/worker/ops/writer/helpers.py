@@ -189,60 +189,81 @@ class Slot:
     of blocks lands in order. For ``end`` an empty trailing paragraph (every new
     document has one, and Writer keeps one after a final table) is *reused* instead of
     leaving a blank line behind.
+
+    Performance note: every UNO call is a round trip to LibreOffice (about 1 ms). The
+    document is enumerated exactly once, in ``__init__``; after that the slot only moves a
+    live text cursor, so inserting n blocks costs O(n) calls, not O(n^2). ``self.after`` is
+    kept as a plain counter (index of the last block before the slot) for the same reason.
     """
 
     def __init__(self, doc: Any, position: str, block_index: int | None):
         self.doc = doc
         self.text = doc.getText()
-        blocks = all_blocks(doc)
-        self._reuse_last = False
+        #: Cursor at the END of the paragraph the next block goes after (None: see _before).
+        self._cur: Any = None
+        #: Cursor at the START of the paragraph the next block goes before.
+        self._before: Any = None
+        #: Next paragraph() fills the empty paragraph at ``_cur`` instead of splitting.
+        self._reuse = False
+        blocks = all_blocks(doc)  # the one and only enumeration
+        if not blocks:
+            raise OpError("The document has no paragraphs.")
         if position == "end":
-            self.after = len(blocks) - 1
-            last = blocks[-1] if blocks else None
-            self._reuse_last = bool(
-                last is not None and not is_table(last) and not last.getString()
-            )
-        elif position == "start":
-            self.after = -1
-        elif position in ("before", "after"):
-            if block_index is None:
-                raise OpError(f"position='{position}' needs block_index.")
-            check_index(blocks, block_index)
-            self.after = block_index if position == "after" else block_index - 1
-        else:
-            raise OpError(f"position must be end, start, before or after (got {position!r}).")
-
-    def paragraph(self, text: str = "", style: str | None = None) -> Any:
-        """Insert a paragraph at the slot and return it, reset to ``style`` (default Standard)."""
-        from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
-
-        blocks = all_blocks(self.doc)
-        if self._reuse_last:
-            self._reuse_last = False
-            self.after = len(blocks) - 1
-            para = blocks[-1]
-        else:
-            if self.after >= 0 and not is_table(blocks[self.after]):
-                # Split after the end of the previous paragraph.
-                cursor = self.text.createTextCursorByRange(blocks[self.after].getEnd())
-            else:
-                # At the start of the document, or right after a table: split the start of
-                # the block that follows so the new empty paragraph appears before it.
-                following = self.after + 1
-                if following >= len(blocks) or is_table(blocks[following]):
+            last = blocks[-1]
+            self._cur = self.text.createTextCursorByRange(last.getEnd())
+            self._reuse = not is_table(last) and not last.getString()
+            self.after = len(blocks) - 2 if self._reuse else len(blocks) - 1
+        elif position in ("start", "before", "after"):
+            if position != "start":
+                if block_index is None:
+                    raise OpError(f"position='{position}' needs block_index.")
+                check_index(blocks, block_index)
+            index = -1 if position == "start" else block_index - (position == "before")
+            self.after = index
+            if index >= 0 and not is_table(blocks[index]):
+                self._cur = self.text.createTextCursorByRange(blocks[index].getEnd())
+            else:  # document start, or right after a table: split before the next paragraph
+                following = blocks[index + 1] if index + 1 < len(blocks) else None
+                if following is None or is_table(following):
                     raise OpError(
                         "Cannot insert here (between two tables, or before a table at the "
                         "very start of the document). Insert after a paragraph instead."
                     )
-                cursor = self.text.createTextCursorByRange(blocks[following].getStart())
-            self.text.insertControlCharacter(cursor, PARAGRAPH_BREAK, False)
-            self.after += 1
-            para = all_blocks(self.doc)[self.after]
+                self._before = self.text.createTextCursorByRange(following.getStart())
+        else:
+            raise OpError(f"position must be end, start, before or after (got {position!r}).")
+
+    def paragraph(self, text: str = "", style: str | None = None) -> Any:
+        """Insert a paragraph at the slot and return a cursor covering it.
+
+        The result supports the same paragraph/character properties as a paragraph object,
+        plus ``getStart()``/``getEnd()``; callers format it directly. It is reset to
+        ``style`` (default Standard) with no direct formatting or list membership.
+        """
+        from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
+
+        if self._reuse:
+            self._reuse = False
+        else:
+            if self._cur is None:
+                # Split at the start of the following paragraph: the new empty paragraph
+                # appears *before* it, and the cursor is left inside the old one.
+                self._cur, self._before = self._before, None
+                self.text.insertControlCharacter(self._cur, PARAGRAPH_BREAK, False)
+                self._cur.goLeft(1, False)  # step back into the new empty paragraph
+            else:
+                self.text.insertControlCharacter(self._cur, PARAGRAPH_BREAK, False)
+        self.after += 1
+        para = self.text.createTextCursorByRange(self._cur)
+        para.gotoStartOfParagraph(False)
+        para.gotoEndOfParagraph(True)
         # A split copies the neighbour's formatting; start from a clean slate.
-        reset_formatting(para)
+        para.setAllPropertiesToDefault()
+        para.NumberingStyleName = ""  # list membership is not reset by the call above
         para.ParaStyleName = style or DEFAULT_STYLE
         if text:
             para.setString(text)
+        self._cur.gotoEndOfParagraph(False)
         return para
 
     def table(self, rows: int, columns: int) -> Any:
@@ -252,19 +273,32 @@ class Slot:
         fresh empty paragraph, then drop that paragraph again unless it is the last block.
         """
         anchor = self.paragraph("")
-        index = self.after  # the anchor paragraph's index; the table will take this index
+        index = self.after  # the anchor's index; the table will take this index
         table = self.doc.createInstance(TEXT_TABLE)
         table.initialize(rows, columns)
-        self.text.insertTextContent(
-            self.text.createTextCursorByRange(anchor.getStart()), table, False
-        )
-        blocks = all_blocks(self.doc)
-        anchor = blocks[index + 1]  # the empty paragraph now sits after the table
-        if index + 2 < len(blocks) and not is_table(blocks[index + 2]):
-            self.text.removeTextContent(anchor)  # the next real paragraph follows the table
-        elif index + 2 >= len(blocks):
-            self._reuse_last = True  # keep it as the trailing paragraph; the next append reuses it
-        self.after = index  # the table
+        self.text.insertTextContent(anchor.getStart(), table, False)
+        self.after = index  # now the table
+
+        probe = self.text.createTextCursorByRange(self._cur)
+        if not probe.gotoNextParagraph(False):
+            # The anchor is the last paragraph: keep it, and let the next append fill it.
+            self._reuse = True
+            return table
+        try:
+            following_is_table = probe.TextTable is not None
+        except Exception:
+            following_is_table = False
+        if following_is_table:  # another table follows: the empty paragraph must stay
+            self._reuse = True
+            return table
+        # A normal paragraph follows: delete the empty anchor so it directly follows the table.
+        doomed = self.text.createTextCursorByRange(self._cur)
+        doomed.gotoStartOfParagraph(False)
+        doomed.gotoNextParagraph(True)  # selects the anchor including its paragraph break
+        doomed.setString("")
+        self._before = self.text.createTextCursorByRange(self._cur)
+        self._before.gotoStartOfParagraph(False)
+        self._cur = None
         return table
 
 
@@ -383,6 +417,28 @@ def apply_para_format(
 
 def alignment_name(value: Any) -> str:
     return _ALIGN_NAMES.get(int(value), "left")
+
+
+def first_page_style(doc: Any) -> str:
+    """Name of the page style the document starts with (``Standard`` for new documents)."""
+    enumeration = doc.getText().createEnumeration()
+    if enumeration.hasMoreElements():
+        try:
+            return enumeration.nextElement().PageStyleName or "Standard"
+        except Exception:
+            pass
+    return "Standard"
+
+
+def used_page_styles(doc: Any) -> list[Any]:
+    """Page styles the document uses.
+
+    ``isInUse()`` is the obvious test, but on some LibreOffice versions it reports False for
+    every style in a freshly loaded headless document, so fall back to the first page's style.
+    """
+    styles = doc.getStyleFamilies().getByName("PageStyles")
+    used = [styles.getByName(n) for n in styles.getElementNames() if styles.getByName(n).isInUse()]
+    return used or [styles.getByName(first_page_style(doc))]
 
 
 # -- searching -----------------------------------------------------------------

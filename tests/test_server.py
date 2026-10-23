@@ -121,8 +121,9 @@ async def test_missing_file_error_is_actionable(env):
 
 
 async def test_sandbox_blocks_paths_outside_root(env):
-    client, _ = env
-    for path in (r"C:\Windows\win.ini", "/etc/passwd", "../escape.docx"):
+    client, root = env
+    outside = str(root.parent / "outside.docx")  # absolute on every OS, and not under root
+    for path in (outside, "../escape.docx"):
         r = await call(client, "office_create_document", path=path)
         assert r.is_error and "not allowed" in text_of(r), path
 

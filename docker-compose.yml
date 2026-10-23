@@ -1,0 +1,21 @@
+# LibreOffice MCP server, always on, over HTTP. All tools are enabled.
+#
+#   mkdir workspace              # the folder the AI can read and edit (shown as /data inside)
+#   docker compose up -d --build
+#   -> MCP endpoint: http://localhost:8000/mcp
+#
+# There is no authentication, so the port is published on 127.0.0.1 only.
+services:
+  libreoffice-mcp:
+    build: .
+    image: libreoffice-mcp
+    command: ["--transport", "http"]
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./workspace:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/readyz', timeout=3)"]
+      interval: 30s
+      start_period: 60s
