@@ -217,7 +217,7 @@ _TRANSITION_TYPE = "com.sun.star.animations.TransitionType."
 _TRANSITION_SUBTYPE = "com.sun.star.animations.TransitionSubType."
 _DIRECTIONS = ("left", "right", "top", "bottom")
 #: effect -> legacy FadeEffect name pattern. LibreOffice maps these onto the modern
-#: transition types (PowerPoint's Wipe / Push / Cover) and writes them to .pptx.
+#: transition types (Wipe / Push / Cover) and writes them to .pptx.
 _DIRECTIONAL = {"wipe": "FADE_FROM_{}", "push": "ROLL_FROM_{}", "cover": "MOVE_FROM_{}"}
 TRANSITION_EFFECTS = ("none", "fade", "dissolve", "wipe", "push", "cover", "random")
 _SPEEDS = {"slow": 2.0, "medium": 1.0, "fast": 0.5}

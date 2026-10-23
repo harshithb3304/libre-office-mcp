@@ -20,7 +20,7 @@ from libreoffice_mcp.worker.session import Session
 from libreoffice_mcp.worker.util import enum, parse_color
 
 TEXT_TABLE = "com.sun.star.text.TextTable"
-DEFAULT_STYLE = "Standard"  # Word's "Normal"; keeps .docx round-trips natural
+DEFAULT_STYLE = "Standard"  # the default paragraph style; keeps .docx round-trips natural
 
 ALIGNMENTS = {"left": "LEFT", "center": "CENTER", "right": "RIGHT", "justify": "BLOCK"}
 _ALIGN_NAMES = {0: "left", 1: "right", 2: "justify", 3: "center"}

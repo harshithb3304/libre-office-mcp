@@ -74,7 +74,7 @@ def test_apps_flag_and_unknown_app(capsys: pytest.CaptureFixture[str]):
     _, s = parse_settings(["--apps", "writer, impress"])
     assert s.apps == ("writer", "impress")
     with pytest.raises(SystemExit):
-        parse_settings(["--apps", "writer,excel"])
+        parse_settings(["--apps", "writer,sheets"])
     assert "unknown app" in capsys.readouterr().err
 
 

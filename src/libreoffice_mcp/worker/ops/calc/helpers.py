@@ -260,7 +260,7 @@ def clean_number(value: float) -> int | float:
 
 
 def normalize_formula(formula: str) -> str:
-    """Excel-style formula -> the syntax ``setFormula`` understands.
+    """Standard spreadsheet formula -> the syntax ``setFormula`` understands.
 
     ``XCell.setFormula`` uses LibreOffice's API grammar: ``;`` separates arguments and a
     sheet reference is ``$Sheet.A1``. AI models naturally write ``=SUM(A1,B1)`` and

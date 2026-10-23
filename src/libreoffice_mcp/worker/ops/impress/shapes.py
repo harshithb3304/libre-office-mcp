@@ -331,7 +331,7 @@ def set_shape_geometry(
             width_mm = h.to_mm(h.mm(height_mm) * size.Width / size.Height)
     h.set_geometry(shape, x_mm, y_mm, width_mm, height_mm)
     if rotation_deg is not None:
-        # PowerPoint-style: positive = clockwise. LibreOffice counts counter-clockwise.
+        # Positive = clockwise (the convention people expect). LibreOffice counts counter-clockwise.
         shape.RotateAngle = round(-rotation_deg * 100) % 36000
     return {"slide_index": slide_index, "shape_index": shape_index, **h.geometry_mm(shape)}
 

@@ -18,7 +18,9 @@ def _check_sheet_name(name: str) -> str:
     if not name or not name.strip():
         raise OpError("The sheet name must not be empty.")
     if len(name) > 31:
-        raise OpError(f"Sheet name {name!r} is longer than 31 characters (Excel's limit).")
+        raise OpError(
+            f"Sheet name {name!r} is longer than 31 characters (the limit that keeps it valid in .xlsx files)."
+        )
     if _BAD_SHEET_CHARS.search(name) or name.startswith("'") or name.endswith("'"):
         raise OpError(
             f"Invalid sheet name {name!r}: it may not contain [ ] * ? : / \\ or start/end with "

@@ -2,7 +2,7 @@
 
 Addressing convention used by every calc_* tool: the sheet is given by *name* in a separate
 ``sheet`` argument (default: the first sheet) and cells/ranges use A1 notation (``B2``,
-``A1:C10``). Rows are 1-based (as in Excel), columns are letters.
+``A1:C10``). Rows are 1-based, columns are letters.
 """
 
 from __future__ import annotations

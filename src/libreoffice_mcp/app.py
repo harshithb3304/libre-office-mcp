@@ -36,7 +36,7 @@ Per application:
   writer_get_structure first. Build whole sections with writer_add_content.
 - Calc (calc_*): sheets by name, cells and ranges in A1 notation. Create a spreadsheet in
   one call with calc_write_table, then format it and add charts (calc_add_chart). Formulas
-  can be written Excel-style (=SUM(A1,B1), ='My Sheet'!A1); strings starting with "=" are
+  can use the usual spreadsheet syntax (=SUM(A1,B1), ='My Sheet'!A1); strings starting with "=" are
   formulas, everything else is stored as given.
 - Impress (impress_*): slides by 0-based slide_index, shapes by shape_index as listed by
   impress_get_slide. Build a whole deck in one call with impress_add_slides; re-theme it with

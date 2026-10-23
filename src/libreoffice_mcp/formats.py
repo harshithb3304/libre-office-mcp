@@ -42,8 +42,8 @@ _FORMATS: list[Format] = [
     Format("odt", WRITER, "OpenDocument Text", "writer8"),
     Format("ott", WRITER, "OpenDocument Text Template", "writer8_template"),
     Format("fodt", WRITER, "Flat OpenDocument Text", "OpenDocument Text Flat XML"),
-    Format("docx", WRITER, "Word 2007+", "MS Word 2007 XML"),
-    Format("doc", WRITER, "Word 97-2003", "MS Word 97"),
+    Format("docx", WRITER, "DOCX", "MS Word 2007 XML"),
+    Format("doc", WRITER, "DOC", "MS Word 97"),
     Format("rtf", WRITER, "Rich Text", "Rich Text Format"),
     Format("txt", WRITER, "Plain text", "Text (encoded)", "UTF8,LF,,,", True),
     Format("html", WRITER, "HTML", "HTML (StarWriter)", None, False),
@@ -52,8 +52,8 @@ _FORMATS: list[Format] = [
     Format("ods", CALC, "OpenDocument Spreadsheet", "calc8"),
     Format("ots", CALC, "OpenDocument Spreadsheet Template", "calc8_template"),
     Format("fods", CALC, "Flat OpenDocument Spreadsheet", "OpenDocument Spreadsheet Flat XML"),
-    Format("xlsx", CALC, "Excel 2007+", "Calc MS Excel 2007 XML"),
-    Format("xls", CALC, "Excel 97-2003", "MS Excel 97"),
+    Format("xlsx", CALC, "XLSX", "Calc MS Excel 2007 XML"),
+    Format("xls", CALC, "XLS", "MS Excel 97"),
     Format(
         "csv",
         CALC,
@@ -66,8 +66,8 @@ _FORMATS: list[Format] = [
     Format("odp", IMPRESS, "OpenDocument Presentation", "impress8"),
     Format("otp", IMPRESS, "OpenDocument Presentation Template", "impress8_template"),
     Format("fodp", IMPRESS, "Flat OpenDocument Presentation", "OpenDocument Presentation Flat XML"),
-    Format("pptx", IMPRESS, "PowerPoint 2007+", "Impress MS PowerPoint 2007 XML"),
-    Format("ppt", IMPRESS, "PowerPoint 97-2003", "MS PowerPoint 97"),
+    Format("pptx", IMPRESS, "PPTX", "Impress MS PowerPoint 2007 XML"),
+    Format("ppt", IMPRESS, "PPT", "MS PowerPoint 97"),
     # Draw
     Format("odg", DRAW, "OpenDocument Drawing", "draw8"),
 ]

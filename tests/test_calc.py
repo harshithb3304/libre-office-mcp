@@ -130,17 +130,17 @@ async def test_strings_stay_text_unless_parse_text(book: Book):
     assert shown["formatted"][0][2] == "2024-01-31" and shown["formatted"][0][3] == "50.00%"
 
 
-async def test_formulas_accept_excel_and_libreoffice_syntax(book: Book):
+async def test_formulas_accept_comma_and_semicolon_syntax(book: Book):
     await book.do("calc.set_range_values", data=[[1, 2], [3, 4]])
     await book.do("calc.add_sheet", name="Other Sheet")
     await book.do("calc.set_range_values", sheet="Other Sheet", data=[[100]])
     result = await book.do(
         "calc.set_range_values", start_cell="D1",
         data=[
-            ["=SUM(A1:B2)"],            # Excel commas would also work: see next
+            ["=SUM(A1:B2)"],            # commas would also work: see next
             ["=SUM(A1:A2,B1:B2)"],      # comma-separated arguments
             ["=A1&\",\"&B1"],           # comma inside a string literal is preserved
-            ["='Other Sheet'!A1+1"],    # Excel sheet reference with quotes
+            ["='Other Sheet'!A1+1"],    # sheet reference with quotes
             ["=IF(A1>0,\"yes, ok\",\"no\")"],
         ],
     )  # fmt: skip

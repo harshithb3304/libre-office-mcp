@@ -34,8 +34,8 @@ async def calc_set_range_values(
     parse_text: ParseText = False,
 ) -> dict[str, Any]:
     """Write a block of values starting at start_cell, overwriting what is there (null clears a
-    cell). Strings starting with '=' are formulas; they may use Excel syntax (commas between
-    arguments, Sheet2!A1 references) or LibreOffice syntax. The result lists `formula_errors`
+    cell). Strings starting with '=' are formulas; they may use the usual spreadsheet syntax (commas
+    between arguments, Sheet2!A1 references) or LibreOffice syntax. The result lists `formula_errors`
     for formulas that evaluate to errors, so check it. To build a whole table with a styled
     header in one go, use calc_write_table instead."""
     return await edit(
