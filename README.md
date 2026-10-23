@@ -41,42 +41,58 @@ docker run --rm libreoffice-mcp doctor      # optional check: should print [ok] 
 
 ### Step 2 — connect your AI app (pick **one** option)
 
-**Option A — the AI app starts the container itself** (simplest; nothing stays running).
-The part after `-v` is `<a folder on your computer>:/data`.
+MCP clients all work the same way: you give them either a **command to run** (stdio) or a
+**URL** (HTTP). This server supports both.
 
-<details open>
-<summary><b>Claude Code</b></summary>
+**Option A — the client starts the container itself** (simplest; nothing stays running).
 
-```bash
-claude mcp add libreoffice -- docker run -i --rm -v /path/to/my-workspace:/data libreoffice-mcp
-```
-</details>
-
-<details>
-<summary><b>Claude Desktop</b> — add to <code>claude_desktop_config.json</code></summary>
-
-(Windows: `%APPDATA%\Claude\`, macOS: `~/Library/Application Support/Claude/`)
+Standard MCP JSON, understood by most clients (Claude Desktop, Cursor, Windsurf, Cline, …):
 
 ```json
 {
   "mcpServers": {
     "libreoffice": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "-v", "C:\\Users\\me\\my-workspace:/data", "libreoffice-mcp"]
+      "args": ["run", "-i", "--rm", "-v", "/path/to/my-workspace:/data", "libreoffice-mcp"]
     }
   }
 }
 ```
-Restart Claude Desktop. (On Windows, double every backslash in JSON.)
-</details>
 
-**Option B — keep the server running in the background** (docker compose; instant responses, one
-URL for any client). Start it, then just register its address:
+* `-v <folder on your computer>:/data` is your [workspace](#the-workspace-folder). On Windows
+  write it as `C:\\Users\\me\\my-workspace:/data` (backslashes must be doubled in JSON).
+* `-i` is required; do **not** add `-t`.
+* Where the file lives depends on the client: Claude Desktop uses `claude_desktop_config.json`
+  (Windows: `%APPDATA%\Claude\`, macOS: `~/Library/Application Support/Claude/`); Cursor,
+  Windsurf, Cline and others have an "MCP servers" settings page or a `mcp.json`. A few clients
+  name the top-level key differently (VS Code's `mcp.json` uses `servers`) — check your
+  client's MCP docs for the exact file and key.
+
+Shortcut for Claude Code (writes the same configuration for you):
 
 ```bash
-docker compose up -d --build        # starts the server on http://localhost:8000/mcp
-claude mcp add --transport http libreoffice http://localhost:8000/mcp
+claude mcp add libreoffice -- docker run -i --rm -v /path/to/my-workspace:/data libreoffice-mcp
 ```
+
+**Option B — keep the server running in the background** (docker compose; instant responses, one
+URL for any client). Start it, then register its address:
+
+```bash
+docker compose up -d --build        # starts the server at http://localhost:8000/mcp
+```
+
+For clients that take a URL, the standard JSON is:
+
+```json
+{
+  "mcpServers": {
+    "libreoffice": { "url": "http://localhost:8000/mcp" }
+  }
+}
+```
+
+(Some clients also want `"type": "http"` next to the `url`; check your client's docs.)
+Claude Code shortcut: `claude mcp add --transport http libreoffice http://localhost:8000/mcp`.
 
 Compose uses the folder `./workspace` next to `docker-compose.yml` (created automatically). To
 use a different folder: `WORKSPACE=/path/to/my-workspace docker compose up -d`
