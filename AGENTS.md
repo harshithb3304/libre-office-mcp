@@ -1,6 +1,6 @@
 # AGENTS.md — guide for AI coding agents and new contributors
 
-An MCP server that lets AI assistants create and edit LibreOffice/Office documents.
+An MCP server that lets AI assistants create and edit documents with LibreOffice.
 **Implemented: Writer (53 tools) + core `office_*` tools. Planned: Calc, then Impress.**
 Humans: start with [README.md](README.md); this file is a map of *what is where* and the rules
 that are easy to break.

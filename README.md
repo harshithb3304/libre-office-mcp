@@ -1,7 +1,7 @@
 # LibreOffice MCP 2.0
 
 An [MCP](https://modelcontextprotocol.io) server that lets AI assistants (Claude Desktop, Claude
-Code, and any other MCP client) **create, read and edit LibreOffice / Microsoft Office documents**
+Code, and any other MCP client) **create, read and edit documents with LibreOffice** (Writer, Calc, Impress)
 — no GUI, no copy-paste.
 
 > Ask: *"Write a one-page project brief as `brief.docx` with a title, three sections, a risks
@@ -114,8 +114,8 @@ The container cannot see your computer; it only sees the folder you mount. We ca
 * It lives **on your disk**, not in the image or container. Stopping or deleting the container
   does not touch it, and the image does not grow as you create documents.
 * To work on an existing file, copy it into the workspace first.
-* **Close a file before the AI edits it.** Word (on Windows) locks open files, so the write is
-  refused; other apps will show stale content until you reload.
+* **Close a file in other programs before the AI edits it.** Some programs lock open files (the
+  write is then refused); others keep showing the old content until you reload.
 
 More detail and permissions on Linux hosts: [docs/DOCKER.md](docs/DOCKER.md).
 

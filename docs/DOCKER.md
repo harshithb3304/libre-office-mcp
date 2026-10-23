@@ -31,7 +31,7 @@ It is the *only* thing the AI can see.
 | Absolute paths | Only paths under `/data`. Anything else is refused. |
 | Host paths | `C:\Users\me\file.docx` doesn't exist inside the container — copy the file into the workspace and use its name. |
 | Existing files | Copy them into the workspace; the AI then edits them there. |
-| Open files | Close a document in Word/LibreOffice before the AI edits it. Word on Windows locks open files exclusively, so the write fails ("file in use"); other apps keep showing stale content until reloaded. |
+| Open files | Close a file in other programs before the AI edits it. Some programs lock open files (the write is then refused with "file in use"); others keep showing the old content until you reload. |
 | Permissions | The server runs as user `ubuntu` (uid 1000). On a Linux host make the folder writable for it (`chmod a+rwx folder`) or run with `--user "$(id -u):$(id -g)"`. Docker Desktop (Windows/macOS) needs nothing special. |
 
 ## Option A — the AI app starts the container (stdio)

@@ -14,3 +14,4 @@ wheels/
 uv.lock.bak
 *.log
 workspace/
+.claude/

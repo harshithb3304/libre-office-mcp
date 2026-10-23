@@ -41,9 +41,9 @@ The AI tried a path outside `/data`. Use relative paths or `/data/...`.
 The server runs as user `ubuntu` (uid 1000). Make the folder writable for it
 (`chmod a+rwx workspace`) or run with `--user "$(id -u):$(id -g)"`.
 
-**The AI can't save a file / my changes don't show up in Word or LibreOffice**
-Close the document in the other app first. Word on Windows locks open files, so the AI's write
-is refused ("file in use"); other apps keep showing their old copy until you reload the file.
+**The AI can't save a file / my changes don't show up in another program**
+Close the document in the other program first. Some programs lock open files, so the AI's write
+is refused ("file in use"); others keep showing their old copy until you reload the file.
 
 **The first request is slow**
 LibreOffice starts in the background when the container starts (about 2 s); the very first call

@@ -13,7 +13,7 @@ Editable formats: `.csv`, `.doc`, `.docx`, `.fodp`, `.fods`, `.fodt`, `.odg`, `.
 - [`office_copy_document`](#office_copy_document) - Copy a document file (a byte-for-byte copy; format is unchanged).
 - [`office_create_document`](#office_create_document) - Create a new, empty document.
 - [`office_get_document_info`](#office_get_document_info) - Return a document's type, metadata (title, author, dates) and statistics (pages, words, tables.
-- [`office_list_documents`](#office_list_documents) - List LibreOffice/Office documents (odt, docx, ods, xlsx, odp, pptx, csv...) in a folder.
+- [`office_list_documents`](#office_list_documents) - List documents LibreOffice can open (odt, docx, ods, xlsx, odp, pptx, csv...) in a folder.
 - [`office_set_document_properties`](#office_set_document_properties) - Set document metadata.
 - [`office_status`](#office_status) - Report the LibreOffice backend's health: version, uptime, requests served and the active settings.
 
@@ -92,7 +92,7 @@ Return a document's type, metadata (title, author, dates) and statistics
 
 *read-only*
 
-List LibreOffice/Office documents (odt, docx, ods, xlsx, odp, pptx, csv...) in a folder.
+List documents LibreOffice can open (odt, docx, ods, xlsx, odp, pptx, csv...) in a folder.
 
 | Parameter | Type | Required | Notes |
 |---|---|---|---|

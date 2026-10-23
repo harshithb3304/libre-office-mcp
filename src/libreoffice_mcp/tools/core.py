@@ -74,7 +74,7 @@ async def office_list_documents(
     directory: Annotated[str, Field(description="Folder to scan (absolute or relative).")],
     recursive: bool = False,
 ) -> dict[str, Any]:
-    """List LibreOffice/Office documents (odt, docx, ods, xlsx, odp, pptx, csv...) in a folder."""
+    """List documents LibreOffice can open (odt, docx, ods, xlsx, odp, pptx, csv...) in a folder."""
     folder = state.paths.existing_dir(directory)
 
     def scan() -> list[dict[str, Any]]:

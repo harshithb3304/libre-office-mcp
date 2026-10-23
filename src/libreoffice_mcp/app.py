@@ -18,7 +18,7 @@ log = logging.getLogger("libreoffice_mcp.app")
 # Shown to the AI model when it connects. This is the cheapest place to teach it how to
 # use the tools well, so keep it short and practical.
 INSTRUCTIONS = """\
-Create and edit LibreOffice / Microsoft Office documents on the user's computer.
+Create and edit documents with LibreOffice on the user's computer.
 
 Workflow tips:
 - Create with office_create_document (the file extension picks Writer/Calc/Impress), or

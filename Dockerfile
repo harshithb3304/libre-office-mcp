@@ -19,7 +19,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # - libreoffice-*   : the office apps (headless; no GUI packages are pulled in)
 # - python3-uno     : the UNO bridge; the worker runs on the system python3 with it
 # - fonts-*         : without fonts PDFs/previews look wrong. Carlito/Caladea are metric-
-#                     compatible with Calibri/Cambria, so Word documents keep their layout.
+#                     compatible with Calibri/Cambria, so .docx files keep their layout.
 # - tini            : PID 1 that reaps zombie processes and forwards stop signals to soffice
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libreoffice-writer libreoffice-calc libreoffice-impress \
