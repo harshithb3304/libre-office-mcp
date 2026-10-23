@@ -6,8 +6,8 @@ Each operation is a function ``fn(session, **args)`` registered with
 
     ops/common.py   ops that work on any document   (doc.*)
     ops/writer/     Writer-only operations          (writer.*)
-    ops/calc/       Calc-only operations            (calc.*)      [planned]
-    ops/impress/    Impress-only operations         (impress.*)   [planned]
+    ops/calc/       Calc-only operations            (calc.*)
+    ops/impress/    Impress-only operations         (impress.*)
 
 To add an operation, see docs/ADDING_A_TOOL.md.
 """

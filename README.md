@@ -10,8 +10,8 @@ Code, and any other MCP client) **create, read and edit documents with LibreOffi
 | | Status |
 |---|---|
 | **Writer** (text: `.odt` `.docx` `.doc` `.rtf` `.txt`) | ✅ 53 tools |
-| **Calc** (spreadsheets: `.ods` `.xlsx` `.csv`) | 🚧 in progress |
-| **Impress** (presentations: `.odp` `.pptx`) | 🚧 in progress |
+| **Calc** (spreadsheets: `.ods` `.xlsx` `.csv`) | ✅ 51 tools |
+| **Impress** (presentations: `.odp` `.pptx`) | ✅ 42 tools |
 | Convert / export (PDF, docx↔odt, …), batch edits, document info | ✅ |
 
 ---
@@ -169,6 +169,17 @@ The full list with parameters is in **[docs/TOOLS.md](docs/TOOLS.md)** (generate
 - **Objects** — images (embedded, resizable, alt text), hyperlinks, bookmarks, footnotes, review comments, table of contents
 - **Page** — paper size, orientation, margins, header/footer text with “Page N of M”
 - **Review** — turn change tracking on/off, accept or reject all changes
+
+**Calc**
+- **Build** — a whole table in one call (`calc_write_table`: header, rows, number formats, auto-width, filter), values and formulas (Excel-style formulas work), fill/copy/sort/find & replace, insert/delete rows and columns, merge cells
+- **Format** — fonts, colours, number formats, borders, column widths, conditional formatting and data bars, data validation
+- **Charts and objects** — column/bar/line/pie/scatter/area charts, images, hyperlinks, cell comments
+- **Workbook** — add/rename/move/copy/hide sheets, named ranges, freeze panes (xlsx), autofilter, CSV
+
+**Impress**
+- **Build a deck in one call** (`impress_add_slides`: title, bullets with levels, two columns, image, table, notes), or add/duplicate/move/delete slides one by one
+- **Shapes and text** — text boxes, 37 shape types, lines and arrows, images, tables, fills/outlines/shadows, text formatting, hyperlinks, alignment and z-order
+- **Look and feel** — whole-deck themes (`impress_apply_theme`), master styles, slide size, backgrounds, transitions, footers, speaker notes
 
 **Any document** — create, info, copy, **convert/export (PDF, docx, odt, html, txt…)**, and
 `office_batch_edit` (many edits, one load, one save, all-or-nothing).

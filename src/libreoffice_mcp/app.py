@@ -38,6 +38,10 @@ Per application:
   one call with calc_write_table, then format it and add charts (calc_add_chart). Formulas
   can be written Excel-style (=SUM(A1,B1), ='My Sheet'!A1); strings starting with "=" are
   formulas, everything else is stored as given.
+- Impress (impress_*): slides by 0-based slide_index, shapes by shape_index as listed by
+  impress_get_slide. Build a whole deck in one call with impress_add_slides; re-theme it with
+  impress_apply_theme. For .pptx, apply the theme first (it is remembered), or build the deck
+  as .odp and convert it with office_convert_document.
 """
 
 
